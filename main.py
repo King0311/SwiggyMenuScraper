@@ -25,9 +25,7 @@ def scrape_and_generate_excel(resids):
 
             try:
                 data = response.json()
-                menu_data = data["data"]["cards"][4]["groupedCard"]["cardGroupMap"][
-                    "REGULAR"
-                ]["cards"]
+                menu_data = data["data"]["cards"][4]["groupedCard"]["cardGroupMap"]["REGULAR"]["cards"]
                 info_card = data["data"]["cards"][2]["card"]["card"]["info"]
                 locality = f"{info_card.get('locality')}-{info_card.get('name')}"
             except (KeyError, IndexError):
@@ -39,26 +37,25 @@ def scrape_and_generate_excel(resids):
                 for category in categories:
                     for itemCard in category.get("itemCards", []):
                         info = itemCard.get("card", {}).get("info", {})
-                        price = round(
-                            (info.get("price") or info.get("defaultPrice") or 0) / 100,
-                            2,
-                        )
+                        price = round((info.get("price") or info.get("defaultPrice") or 0) / 100, 2)
                         finalPrice = round(info.get("finalPrice", 0) / 100, 2)
                         flashSale = "ON" if finalPrice and finalPrice < price else "OFF"
                         inStock = info.get("inStock", None)
 
-                        items.append(
-                            {
-                                "res_id": info_card.get("id"),
-                                "category": info.get("category", ""),
-                                "sub-category": category.get("title", ""),
-                                "name": info.get("name", ""),
-                                "price": price,
-                                "finalPrice": finalPrice,
-                                "flashSale": flashSale,
-                                "inStock": inStock,
-                            }
-                        )
+                        imageId = info.get("imageId")
+                        imageUrl = f"https://media-assets.swiggy.com/swiggy/image/upload/{imageId}" if imageId else None
+
+                        items.append({
+                            "res_id": info_card.get("id"),
+                            "category": info.get("category", ""),
+                            "sub-category": category.get("title", ""),
+                            "name": info.get("name", ""),
+                            "price": price,
+                            "finalPrice": finalPrice,
+                            "flashSale": flashSale,
+                            "inStock": inStock,
+                            "image": imageUrl,
+                        })
 
             df = pd.DataFrame(items)
             df.to_excel(writer, sheet_name=locality[:31], index=False)
@@ -68,7 +65,6 @@ def scrape_and_generate_excel(resids):
 
 @app.get("/swiggy/download")
 def download_excel(res_id: Optional[str] = Query(...)):
-    # Split CSV-style query param into list
     res_ids = res_id.split(",")
     file_path = scrape_and_generate_excel(res_ids)
     return FileResponse(
