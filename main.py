@@ -34,29 +34,64 @@ def scrape_and_generate_excel(resids):
             items = []
             for card in menu_data:
                 categories = card.get("card", {}).get("card", {}).get("categories", [])
-                for category in categories:
-                    for itemCard in category.get("itemCards", []):
+                if len(categories) > 0:
+                    for category in categories:
+                        for itemCard in category.get("itemCards", []):
+                            info = itemCard.get("card", {}).get("info", {})
+                            price = round((info.get("price") or info.get("defaultPrice") or 0) / 100, 2)
+                            finalPrice = round(info.get("finalPrice", 0) / 100, 2)
+                            flashSale = "ON" if finalPrice and finalPrice < price else "OFF"
+                            inStock = info.get("inStock", None)
+
+                            imageId = info.get("imageId")
+                            imageUrl = f"https://media-assets.swiggy.com/swiggy/image/upload/{imageId}" if imageId else None
+
+                            items.append({
+                                "res_id": info_card.get("id"),
+                                "category": info.get("category", ""),
+                                "sub-category": category.get("title", ""),
+                                "name": info.get("name", ""),
+                                "price": price,
+                                "finalPrice": finalPrice,
+                                "flashSale": flashSale,
+                                "inStock": inStock,
+                                "image": imageUrl,
+                            })
+
+                else:
+                    categories = card.get("card", {}).get("card", {}).get("itemCards", [])
+                    for itemCard in categories:
                         info = itemCard.get("card", {}).get("info", {})
-                        price = round((info.get("price") or info.get("defaultPrice") or 0) / 100, 2)
+                        price = round(
+                            (info.get("price") or info.get("defaultPrice") or 0) / 100,
+                            2,
+                        )
                         finalPrice = round(info.get("finalPrice", 0) / 100, 2)
                         flashSale = "ON" if finalPrice and finalPrice < price else "OFF"
                         inStock = info.get("inStock", None)
 
                         imageId = info.get("imageId")
-                        imageUrl = f"https://media-assets.swiggy.com/swiggy/image/upload/{imageId}" if imageId else None
+                        imageUrl = (
+                            f"https://media-assets.swiggy.com/swiggy/image/upload/{imageId}"
+                            if imageId
+                            else None
+                        )
 
-                        items.append({
-                            "res_id": info_card.get("id"),
-                            "category": info.get("category", ""),
-                            "sub-category": category.get("title", ""),
-                            "name": info.get("name", ""),
-                            "price": price,
-                            "finalPrice": finalPrice,
-                            "flashSale": flashSale,
-                            "inStock": inStock,
-                            "image": imageUrl,
-                        })
+                        items.append(
+                            {
+                                "res_id": info_card.get("id"),
+                                "category": info.get("category", ""),
+                                "sub-category": "",
+                                "name": info.get("name", ""),
+                                "price": price,
+                                "finalPrice": finalPrice,
+                                "flashSale": flashSale,
+                                "inStock": inStock,
+                                "image": imageUrl,
+                            }
+                        )
 
+                    pass
             df = pd.DataFrame(items)
             df.to_excel(writer, sheet_name=locality[:31], index=False)
 
