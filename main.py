@@ -19,6 +19,7 @@ def scrape_and_generate_excel(resids):
     filename = f"SwiggyMenu_{timestamp}.xlsx"
 
     with pd.ExcelWriter(filename) as writer:
+        items = []
         for res_id in resids:
             url = f"https://www.swiggy.com/dapi/menu/pl?page-type=REGULAR_MENU&complete-menu=true&lat=19.07480&lng=72.88560&restaurantId={res_id}&catalog_qa=undefined&submitAction=ENTER"
             response = requests.get(url, headers=HEADERS)
@@ -31,7 +32,7 @@ def scrape_and_generate_excel(resids):
             except (KeyError, IndexError):
                 continue
 
-            items = []
+            
             for card in menu_data:
                 categories = card.get("card", {}).get("card", {}).get("categories", [])
                 if len(categories) > 0:
@@ -91,9 +92,9 @@ def scrape_and_generate_excel(resids):
                             }
                         )
 
-                    pass
-            df = pd.DataFrame(items)
-            df.to_excel(writer, sheet_name=locality[:31], index=False)
+                   
+        df = pd.DataFrame(items)
+        df.to_excel(writer, sheet_name="All In One", index=False)
 
     return filename
 
